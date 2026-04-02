@@ -1,0 +1,7 @@
+name: pharma-triage-env
+description: Pharmacovigilance triage simulation
+entry_point: env:PharmaTriageEnv
+
+observation_space: Observation
+action_space: Action
+reward_space: Reward

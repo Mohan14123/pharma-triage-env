@@ -1,0 +1,26 @@
+[project]
+name = "pharma-triage-env"
+version = "0.1.0"
+description = "Pharmacovigilance triage OpenEnv environment"
+authors = [
+    { name = "Mohan Kumar S" },
+    { name = "Ashwin R" },
+    { name = "Manikandan S" }
+]
+dependencies = [
+    "pydantic",
+    "numpy",
+    "openenv-core",
+    "fastapi",
+    "uvicorn"
+]
+
+[project.scripts]
+server = "server.app:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

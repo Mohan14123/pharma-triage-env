@@ -1,0 +1,114 @@
+1.All the reward values are Determinstic and looks harcoded
+2.the range of rewards should be from -10 to 10
+3.Modify the genrator to give much more complex values 
+4.No multi-step workflow (real triage isn’t single-step)
+5.HARD task still partially rule-based
+6.No “impossible” or ambiguous grading cases
+7.Single-step environment
+8.No agent interaction loop (query/clarify)
+9.If models.py Optional fix is missing → FAIL
+10.If Docker/HF deploy breaks → FAIL
+11.No “wow factor” (multi-step, interactive, or unique mechanic)
+12.FINALLLY(after implementing all the above changes):
+
+(i)Update Inference.py to this strutcure:
+
+import os
+import json
+from openai import OpenAI
+from pharma_triage_env.env import PharmaTriageEnv
+
+API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
+API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+MODEL_NAME = os.getenv("MODEL_NAME")
+
+client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+
+SYSTEM_PROMPT = """
+Return ONLY JSON:
+{
+  "severity": "low | medium | high",
+  "serious": true | false,
+  "expected": true | false,
+  "escalation": "routine_review | urgent_review | regulatory_report"
+}
+"""
+
+def call_model(obs):
+    try:
+        res = client.chat.completions.create(
+            model=MODEL_NAME,
+            temperature=0,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": json.dumps(obs)}
+            ]
+        )
+        return json.loads(res.choices[0].message.content)
+    except:
+        return fallback(obs)
+
+def fallback(obs):
+    serious = obs.get("hospitalized") or obs.get("life_threatening")
+    expected = bool(set(obs.get("symptoms", [])) & set(obs.get("known_label_side_effects", [])))
+
+    return {
+        "severity": "high" if serious else "medium",
+        "serious": serious,
+        "expected": expected,
+        "escalation": "regulatory_report" if serious and not expected else "urgent_review" if serious else "routine_review"
+    }
+
+def run(task):
+    env = PharmaTriageEnv(task=task)
+    total = 0
+
+    for _ in range(30):
+        obs = env.reset()
+        action = call_model(obs)
+        _, reward, _, _ = env.step(action)
+        total += max(0, min(1, reward / 10))
+
+    return total / 30
+
+def main():
+    scores = {t: run(t) for t in ["easy", "medium", "hard"]}
+    print(scores)
+    print("overall:", sum(scores.values()) / 3)
+
+if __name__ == "__main__":
+    main()
+
+(ii)Create DockFile
+(iii)Deploy in Hugging Face Space
+(iv)push to github
+
+
+Additional things to do :
+
+i)optional:
+    A)add testing for the environment(nesscary if i have time)
+    B)add assets/
+        ├── screenshots/          # Optional images for README
+        └── sample_runs/  
+    c)add scripts/smoke_test.py
+
+ii)not optional
+    A)Multi-step interaction (BIG BOOST)
+    Example:
+
+     Agent: asks "was patient hospitalized?"
+     Env: reveals info
+    Agent: updates decision
+    B)Add "ambiguous" cases where even humans disagree
+    C)Add "impossible" cases that require guessing
+    D)Add "partial information" cases
+    E)Add "noisy" cases with incorrect info
+    F)Add "time-sensitive" cases
+    G)Add "complex medical scenarios" (e.g., drug interactions, comorbidities)
+    H)Add "real-world data artifacts" (typos, abbreviations, OCR errors)
+    I)Add "multi-agent" scenarios (e.g., multiple reporters, different expertise levels)
+    j)Add in README:
+
+        mention FAERS / pharmacovigilance workflows
+        explain how your rules approximate real systems

@@ -1,0 +1,81 @@
+(venv) mohan@mohan-Legion-Slim-7-16IRH8:~/Documents/Projects/pharma_triage_env$ PYTHONPATH=./src python scripts/demo.py
+
+========== TASK: EASY ==========
+Run 01 | Reward: +3.00 | Score: 1.00
+Run 02 | Reward: +3.00 | Score: 1.00
+Run 03 | Reward: +3.00 | Score: 1.00
+Run 04 | Reward: +3.00 | Score: 1.00
+Run 05 | Reward: +3.00 | Score: 1.00
+Run 06 | Reward: +3.00 | Score: 1.00
+Run 07 | Reward: +3.00 | Score: 1.00
+Run 08 | Reward: +3.00 | Score: 1.00
+Run 09 | Reward: +3.00 | Score: 1.00
+Run 10 | Reward: +3.00 | Score: 1.00
+Run 11 | Reward: +3.00 | Score: 1.00
+Run 12 | Reward: +4.00 | Score: 1.00
+Run 13 | Reward: +3.00 | Score: 1.00
+Run 14 | Reward: +4.00 | Score: 1.00
+Run 15 | Reward: +4.00 | Score: 1.00
+Run 16 | Reward: +4.00 | Score: 1.00
+Run 17 | Reward: +3.00 | Score: 1.00
+Run 18 | Reward: +3.00 | Score: 1.00
+Run 19 | Reward: +3.00 | Score: 1.00
+Run 20 | Reward: +3.00 | Score: 1.00
+
+--- SUMMARY ---
+Average Score : 1.000
+Average Reward: 3.200
+
+========== TASK: MEDIUM ==========
+Run 01 | Reward: +3.00 | Score: 1.00
+Run 02 | Reward: +4.00 | Score: 1.00
+Run 03 | Reward: +4.00 | Score: 0.75
+Run 04 | Reward: +4.00 | Score: 1.00
+Run 05 | Reward: +4.00 | Score: 0.75
+Run 06 | Reward: +4.00 | Score: 1.00
+Run 07 | Reward: +2.50 | Score: 0.75
+Run 08 | Reward: +4.00 | Score: 0.75
+Run 09 | Reward: +4.00 | Score: 0.75
+Run 10 | Reward: +4.00 | Score: 1.00
+Run 11 | Reward: +2.50 | Score: 0.75
+Run 12 | Reward: +4.00 | Score: 0.75
+Run 13 | Reward: +2.50 | Score: 0.75
+Run 14 | Reward: +2.50 | Score: 0.75
+Run 15 | Reward: +2.50 | Score: 0.75
+Run 16 | Reward: +4.00 | Score: 1.00
+Run 17 | Reward: +4.00 | Score: 0.75
+Run 18 | Reward: +4.00 | Score: 0.75
+Run 19 | Reward: +4.00 | Score: 1.00
+Run 20 | Reward: +4.00 | Score: 1.00
+
+--- SUMMARY ---
+Average Score : 0.850
+Average Reward: 3.575
+
+========== TASK: HARD ==========
+Run 01 | Reward: +1.50 | Score: 0.50
+Run 02 | Reward: +1.50 | Score: 0.50
+Run 03 | Reward: +2.00 | Score: 0.67
+Run 04 | Reward: +0.00 | Score: 0.00
+Run 05 | Reward: +4.00 | Score: 1.00
+Run 06 | Reward: +2.50 | Score: 0.83
+Run 07 | Reward: +4.00 | Score: 1.00
+Run 08 | Reward: +2.50 | Score: 0.83
+Run 09 | Reward: +4.00 | Score: 1.00
+Run 10 | Reward: +2.00 | Score: 0.67
+Run 11 | Reward: +2.50 | Score: 0.83
+Run 12 | Reward: +2.50 | Score: 0.83
+Run 13 | Reward: +0.50 | Score: 0.17
+Run 14 | Reward: +0.50 | Score: 0.17
+Run 15 | Reward: +2.50 | Score: 0.83
+Run 16 | Reward: +1.50 | Score: 0.00
+Run 17 | Reward: +2.50 | Score: 0.83
+Run 18 | Reward: +2.00 | Score: 0.67
+Run 19 | Reward: +4.00 | Score: 0.83
+Run 20 | Reward: +2.00 | Score: 0.67
+
+--- SUMMARY ---
+Average Score : 0.642
+Average Reward: 2.225
+
+Demo completed successfully.
