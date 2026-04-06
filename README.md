@@ -1,3 +1,14 @@
+---
+title: PharmaTriageEnv
+emoji: 💊
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+license: mit
+short_description: Multi-Step Adverse Drug Event Triage Environment
+---
+
 # PharmaTriageEnv: Multi-Step Adverse Drug Event Triage Environment
 
 [![Pre-Deploy Tests](https://github.com/Mohan14123/pharma-triage-env/actions/workflows/tests.yml/badge.svg)](https://github.com/Mohan14123/pharma-triage-env/actions/workflows/tests.yml)
