@@ -338,8 +338,13 @@ def generate_case(task="hard", seed=None):
     num_symptoms = rng.randint(1, 3)
 
     if task == "easy":
-        # pick from common side effects
-        symptoms = rng.sample(drug_info["common_se"], min(num_symptoms, len(drug_info["common_se"])))
+        # easy: usually common side effects, but ~30% chance of including
+        # a rare side effect to produce diverse GT patterns
+        if rng.random() < 0.3:
+            pool = drug_info["common_se"] + drug_info["rare_se"]
+        else:
+            pool = drug_info["common_se"]
+        symptoms = rng.sample(pool, min(num_symptoms, len(pool)))
     elif task == "medium":
         pool = drug_info["common_se"] + drug_info["rare_se"]
         symptoms = rng.sample(pool, min(num_symptoms, len(pool)))
@@ -361,8 +366,9 @@ def generate_case(task="hard", seed=None):
     true_life_threatening = has_severe and rng.random() < 0.5
 
     if task == "easy":
-        true_hospitalized = has_severe or rng.random() < 0.4
-        true_life_threatening = has_severe
+        # diverse: ~55% hospitalized, life-threatening if severe or 15% chance
+        true_hospitalized = has_severe or rng.random() < 0.55
+        true_life_threatening = has_severe or (true_hospitalized and rng.random() < 0.15)
 
     if task == "hard" and rng.random() < 0.3:
         # deceptive: life-threatening but reported as not-hospitalized
@@ -382,7 +388,12 @@ def generate_case(task="hard", seed=None):
 
     # ---- known label side effects ----
     if task == "easy":
-        known_side_effects = list(set(drug_info["common_se"] + drug_info["rare_se"]))
+        # diversify: 70% full list, 30% common-only (makes expected=False
+        # possible when symptoms contain a rare side effect)
+        if rng.random() < 0.3:
+            known_side_effects = drug_info["common_se"][:]
+        else:
+            known_side_effects = list(set(drug_info["common_se"] + drug_info["rare_se"]))
     elif task == "medium":
         known_side_effects = drug_info["common_se"][:]
         if rng.random() < 0.3:
