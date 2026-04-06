@@ -14,4 +14,11 @@ EXPOSE 7860
 ENV PYTHONPATH=/app/src
 ENV PYTHONUNBUFFERED=1
 
-CMD ["python", "server/app.py"]
+# Scaling parameters (override via -e flag or HF Spaces Variables)
+ENV WORKERS=2
+ENV MAX_CONCURRENT_ENVS=100
+ENV PORT=7860
+ENV HOST=0.0.0.0
+
+# Use uvicorn directly with multi-worker support
+CMD ["sh", "-c", "uvicorn server.app:app --host $HOST --port $PORT --workers $WORKERS"]
