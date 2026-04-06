@@ -1,5 +1,6 @@
 # PharmaTriageEnv: Multi-Step Adverse Drug Event Triage Environment
 
+[![Pre-Deploy Tests](https://github.com/Mohan14123/pharma-triage-env/actions/workflows/tests.yml/badge.svg)](https://github.com/Mohan14123/pharma-triage-env/actions/workflows/tests.yml)
 ## Overview
 
 **PharmaTriageEnv** is a multi-step, OpenEnv-compatible environment that simulates real-world pharmacovigilance triage workflows. It evaluates an AI agent's ability to:
