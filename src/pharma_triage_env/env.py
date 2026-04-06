@@ -28,11 +28,19 @@ class PharmaTriageEnv:
 
     Supports 3 task difficulties: easy, medium, hard.
     Each episode allows up to max_steps interactions (queries + final decision).
+
+    Args:
+        task: difficulty level ("easy", "medium", "hard")
+        max_steps: maximum interaction steps per episode
+        seed: base RNG seed for reproducibility. When set, episode i uses
+              seed = base_seed + i, guaranteeing identical cases across runs.
+              When None, cases are generated randomly (non-reproducible).
     """
 
-    def __init__(self, task="hard", max_steps=5):
+    def __init__(self, task="hard", max_steps=5, seed=None):
         self.task = task
         self.max_steps = max_steps
+        self.seed = seed
         self.grader = TriageGrader()
         self.reward_calc = RewardCalculator()
 
@@ -43,6 +51,7 @@ class PharmaTriageEnv:
         self.revealed_fields = {}
         self.episode_done = False
         self.episode_history = []
+        self._episode_index = 0
 
     def reset(self):
         """
@@ -53,7 +62,13 @@ class PharmaTriageEnv:
         """
         from pharma_triage_env.generator import generate_case
 
-        self.current_case = generate_case(self.task)
+        # Deterministic seeding: episode i gets seed = base_seed + i
+        episode_seed = None
+        if self.seed is not None:
+            episode_seed = self.seed + self._episode_index
+            self._episode_index += 1
+
+        self.current_case = generate_case(self.task, seed=episode_seed)
         self.step_count = 0
         self.queries_used = 0
         self.revealed_fields = {}

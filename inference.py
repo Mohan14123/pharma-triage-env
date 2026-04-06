@@ -67,6 +67,11 @@ MAX_TOKENS = 300
 SUCCESS_SCORE_THRESHOLD = 0.5
 NUM_EPISODES = 30
 
+# Reproducibility seed: ensures identical cases across runs.
+# Each task gets a separate seed range (spaced by NUM_EPISODES)
+# to avoid overlap: easy=42..71, medium=72..101, hard=102..131
+SEED = 42
+
 # ============================================================
 # OPENAI CLIENT
 # ============================================================
@@ -452,8 +457,9 @@ def main():
     tasks = ["easy", "medium", "hard"]
     overall_scores = {}
 
-    for task in tasks:
-        env = PharmaTriageEnv(task=task, max_steps=MAX_STEPS)
+    for idx, task in enumerate(tasks):
+        task_seed = SEED + (idx * NUM_EPISODES)
+        env = PharmaTriageEnv(task=task, max_steps=MAX_STEPS, seed=task_seed)
         task_scores = []
 
         for _ in range(NUM_EPISODES):

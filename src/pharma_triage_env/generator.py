@@ -19,6 +19,9 @@ Difficulty tiers:
 import random
 import math
 
+# Module-level default RNG (can be overridden per-call via seed)
+_default_rng = random.Random()
+
 # ============================================================
 # DRUG DATABASE (realistic, FAERS-inspired)
 # ============================================================
@@ -118,79 +121,84 @@ CONTRADICTORY_PHRASES = [
 ]
 
 
-def _apply_typos(text, prob=0.15):
+def _apply_typos(text, prob=0.15, rng=None):
     """Inject realistic typos into text."""
+    rng = rng or _default_rng
     words = text.split()
     result = []
     for w in words:
         lower = w.lower()
-        if lower in TYPO_MAP and random.random() < prob:
-            result.append(random.choice(TYPO_MAP[lower]))
+        if lower in TYPO_MAP and rng.random() < prob:
+            result.append(rng.choice(TYPO_MAP[lower]))
         else:
             result.append(w)
     return " ".join(result)
 
 
-def _apply_ocr_errors(text, prob=0.08):
+def _apply_ocr_errors(text, prob=0.08, rng=None):
     """Simulate OCR transcription errors."""
+    rng = rng or _default_rng
     chars = list(text)
     for i, c in enumerate(chars):
-        if c in OCR_ERRORS and random.random() < prob:
+        if c in OCR_ERRORS and rng.random() < prob:
             chars[i] = OCR_ERRORS[c]
     return "".join(chars)
 
 
-def _apply_abbreviations(text, prob=0.2):
+def _apply_abbreviations(text, prob=0.2, rng=None):
     """Replace words with medical abbreviations."""
+    rng = rng or _default_rng
     for full, abbrev in ABBREVIATIONS.items():
-        if full in text.lower() and random.random() < prob:
+        if full in text.lower() and rng.random() < prob:
             text = text.replace(full, abbrev)
     return text
 
 
-def maybe_missing(value, prob=0.25):
+def maybe_missing(value, prob=0.25, rng=None):
     """Return None with given probability (partial observability)."""
-    return None if random.random() < prob else value
+    rng = rng or _default_rng
+    return None if rng.random() < prob else value
 
 
 # ============================================================
 # LAB VALUE GENERATOR
 # ============================================================
 
-def _generate_labs(serious, drug_name):
+def _generate_labs(serious, drug_name, rng=None):
     """Generate plausible lab values with optional abnormalities."""
+    rng = rng or _default_rng
     labs = {}
     drug_info = DRUGS.get(drug_name, {})
 
     # baseline labs
-    alt_base = random.randint(10, 40)
-    creatinine_base = round(random.uniform(0.6, 1.2), 1)
-    hemoglobin_base = round(random.uniform(12.0, 16.0), 1)
-    platelet_base = random.randint(150, 400)
-    inr_base = round(random.uniform(0.9, 1.1), 1)
+    alt_base = rng.randint(10, 40)
+    creatinine_base = round(rng.uniform(0.6, 1.2), 1)
+    hemoglobin_base = round(rng.uniform(12.0, 16.0), 1)
+    platelet_base = rng.randint(150, 400)
+    inr_base = round(rng.uniform(0.9, 1.1), 1)
 
     if serious:
         # abnormal labs for serious cases
         if "hepatotoxicity" in drug_info.get("rare_se", []):
-            alt_base = random.randint(200, 800)
+            alt_base = rng.randint(200, 800)
         if "renal failure" in drug_info.get("rare_se", []):
-            creatinine_base = round(random.uniform(3.0, 8.0), 1)
+            creatinine_base = round(rng.uniform(3.0, 8.0), 1)
         if "pancytopenia" in drug_info.get("rare_se", []):
-            platelet_base = random.randint(10, 50)
-            hemoglobin_base = round(random.uniform(5.0, 8.0), 1)
+            platelet_base = rng.randint(10, 50)
+            hemoglobin_base = round(rng.uniform(5.0, 8.0), 1)
         if drug_info.get("class") == "anticoagulant":
-            inr_base = round(random.uniform(4.0, 9.0), 1)
+            inr_base = round(rng.uniform(4.0, 9.0), 1)
 
     labs["ALT"] = alt_base
     labs["creatinine"] = creatinine_base
     labs["hemoglobin"] = hemoglobin_base
     labs["platelets"] = platelet_base
-    if drug_info.get("class") == "anticoagulant" or random.random() < 0.3:
+    if drug_info.get("class") == "anticoagulant" or rng.random() < 0.3:
         labs["INR"] = inr_base
-    if random.random() < 0.4:
-        labs["WBC"] = round(random.uniform(2.0, 15.0), 1)
-    if random.random() < 0.3:
-        labs["potassium"] = round(random.uniform(3.0, 6.5), 1)
+    if rng.random() < 0.4:
+        labs["WBC"] = round(rng.uniform(2.0, 15.0), 1)
+    if rng.random() < 0.3:
+        labs["potassium"] = round(rng.uniform(3.0, 6.5), 1)
 
     return labs
 
@@ -300,11 +308,15 @@ def generate_case(task="hard", seed=None):
     Returns:
         dict with keys: observation, ground_truth, hidden_info, case_metadata
     """
+    # Create an isolated RNG instance for full reproducibility.
+    # This avoids polluting the global random state.
     if seed is not None:
-        random.seed(seed)
+        rng = random.Random(seed)
+    else:
+        rng = _default_rng
 
     # ---- pick primary drug ----
-    drug_name = random.choice(list(DRUGS.keys()))
+    drug_name = rng.choice(list(DRUGS.keys()))
     drug_info = DRUGS[drug_name]
 
     # ---- concomitant drugs (interactions) ----
@@ -312,8 +324,8 @@ def generate_case(task="hard", seed=None):
     interaction = None
     if task in ("medium", "hard"):
         other_drugs = [d for d in DRUGS if d != drug_name]
-        num_concomitant = random.randint(0, 3)
-        concomitant_drugs = random.sample(other_drugs, min(num_concomitant, len(other_drugs)))
+        num_concomitant = rng.randint(0, 3)
+        concomitant_drugs = rng.sample(other_drugs, min(num_concomitant, len(other_drugs)))
 
         # check for known interactions
         all_patient_drugs = [drug_name] + concomitant_drugs
@@ -323,36 +335,36 @@ def generate_case(task="hard", seed=None):
                 break
 
     # ---- symptoms ----
-    num_symptoms = random.randint(1, 3)
+    num_symptoms = rng.randint(1, 3)
 
     if task == "easy":
         # pick from common side effects
-        symptoms = random.sample(drug_info["common_se"], min(num_symptoms, len(drug_info["common_se"])))
+        symptoms = rng.sample(drug_info["common_se"], min(num_symptoms, len(drug_info["common_se"])))
     elif task == "medium":
         pool = drug_info["common_se"] + drug_info["rare_se"]
-        symptoms = random.sample(pool, min(num_symptoms, len(pool)))
+        symptoms = rng.sample(pool, min(num_symptoms, len(pool)))
     else:
         # hard: may include rare + interaction-emergent symptoms
         pool = drug_info["common_se"] + drug_info["rare_se"]
         if interaction:
             pool.append(interaction["emergent"])
-        symptoms = random.sample(pool, min(num_symptoms, len(pool)))
+        symptoms = rng.sample(pool, min(num_symptoms, len(pool)))
         # 40% chance of injecting a severe symptom
-        if random.random() < 0.4 and not any(s in SEVERE_SYMPTOMS for s in symptoms):
-            symptoms.append(random.choice(SEVERE_SYMPTOMS))
+        if rng.random() < 0.4 and not any(s in SEVERE_SYMPTOMS for s in symptoms):
+            symptoms.append(rng.choice(SEVERE_SYMPTOMS))
 
     symptoms = list(set(symptoms))  # deduplicate
 
     # ---- clinical flags (true values) ----
     has_severe = any(s in SEVERE_SYMPTOMS for s in symptoms)
-    true_hospitalized = has_severe or random.random() < 0.35
-    true_life_threatening = has_severe and random.random() < 0.5
+    true_hospitalized = has_severe or rng.random() < 0.35
+    true_life_threatening = has_severe and rng.random() < 0.5
 
     if task == "easy":
-        true_hospitalized = has_severe or random.random() < 0.4
+        true_hospitalized = has_severe or rng.random() < 0.4
         true_life_threatening = has_severe
 
-    if task == "hard" and random.random() < 0.3:
+    if task == "hard" and rng.random() < 0.3:
         # deceptive: life-threatening but reported as not-hospitalized
         true_hospitalized = False
         true_life_threatening = True
@@ -362,42 +374,42 @@ def generate_case(task="hard", seed=None):
     life_threatening = true_life_threatening
 
     if task == "medium":
-        hospitalized = maybe_missing(hospitalized, 0.25)
-        life_threatening = maybe_missing(life_threatening, 0.25)
+        hospitalized = maybe_missing(hospitalized, 0.25, rng=rng)
+        life_threatening = maybe_missing(life_threatening, 0.25, rng=rng)
     elif task == "hard":
-        hospitalized = maybe_missing(hospitalized, 0.4)
-        life_threatening = maybe_missing(life_threatening, 0.4)
+        hospitalized = maybe_missing(hospitalized, 0.4, rng=rng)
+        life_threatening = maybe_missing(life_threatening, 0.4, rng=rng)
 
     # ---- known label side effects ----
     if task == "easy":
         known_side_effects = list(set(drug_info["common_se"] + drug_info["rare_se"]))
     elif task == "medium":
         known_side_effects = drug_info["common_se"][:]
-        if random.random() < 0.3:
+        if rng.random() < 0.3:
             known_side_effects = []
     else:
         # hard: may give misleading / empty / shuffled list
-        if random.random() < 0.25:
+        if rng.random() < 0.25:
             known_side_effects = None
-        elif random.random() < 0.3:
+        elif rng.random() < 0.3:
             # decoy: side effects from a DIFFERENT drug
-            decoy_drug = random.choice([d for d in DRUGS if d != drug_name])
+            decoy_drug = rng.choice([d for d in DRUGS if d != drug_name])
             known_side_effects = DRUGS[decoy_drug]["common_se"][:]
         else:
-            known_side_effects = drug_info["common_se"][:random.randint(1, len(drug_info["common_se"]))]
+            known_side_effects = drug_info["common_se"][:rng.randint(1, len(drug_info["common_se"]))]
 
     # ---- patient demographics ----
-    patient_age = random.randint(18, 90)
-    patient_weight = round(random.uniform(45.0, 140.0), 1)
-    medical_history = random.sample(COMORBIDITIES, k=random.randint(0, 3)) if random.random() < 0.7 else []
-    onset_days = random.randint(1, 180)
-    reporter_type = random.choice(REPORTER_TYPES)
-    dechallenge_positive = random.choice([True, False, None])
-    rechallenge_positive = random.choice([True, False, None])
+    patient_age = rng.randint(18, 90)
+    patient_weight = round(rng.uniform(45.0, 140.0), 1)
+    medical_history = rng.sample(COMORBIDITIES, k=rng.randint(0, 3)) if rng.random() < 0.7 else []
+    onset_days = rng.randint(1, 180)
+    reporter_type = rng.choice(REPORTER_TYPES)
+    dechallenge_positive = rng.choice([True, False, None])
+    rechallenge_positive = rng.choice([True, False, None])
 
     # ---- lab values ----
     serious_true = true_hospitalized or true_life_threatening
-    labs = _generate_labs(serious_true, drug_name)
+    labs = _generate_labs(serious_true, drug_name, rng=rng)
 
     # ---- partial observability for demographics ----
     if task == "easy":
@@ -411,25 +423,25 @@ def generate_case(task="hard", seed=None):
         obs_rechallenge = rechallenge_positive
         obs_labs = labs
     elif task == "medium":
-        obs_age = maybe_missing(patient_age, 0.2)
-        obs_weight = maybe_missing(patient_weight, 0.3)
-        obs_concomitant = maybe_missing(concomitant_drugs if concomitant_drugs else None, 0.3)
-        obs_history = maybe_missing(medical_history if medical_history else None, 0.3)
-        obs_onset = maybe_missing(onset_days, 0.2)
-        obs_reporter = maybe_missing(reporter_type, 0.2)
-        obs_dechallenge = maybe_missing(dechallenge_positive, 0.4)
-        obs_rechallenge = maybe_missing(rechallenge_positive, 0.5)
-        obs_labs = maybe_missing(labs, 0.3)
+        obs_age = maybe_missing(patient_age, 0.2, rng=rng)
+        obs_weight = maybe_missing(patient_weight, 0.3, rng=rng)
+        obs_concomitant = maybe_missing(concomitant_drugs if concomitant_drugs else None, 0.3, rng=rng)
+        obs_history = maybe_missing(medical_history if medical_history else None, 0.3, rng=rng)
+        obs_onset = maybe_missing(onset_days, 0.2, rng=rng)
+        obs_reporter = maybe_missing(reporter_type, 0.2, rng=rng)
+        obs_dechallenge = maybe_missing(dechallenge_positive, 0.4, rng=rng)
+        obs_rechallenge = maybe_missing(rechallenge_positive, 0.5, rng=rng)
+        obs_labs = maybe_missing(labs, 0.3, rng=rng)
     else:
-        obs_age = maybe_missing(patient_age, 0.4)
-        obs_weight = maybe_missing(patient_weight, 0.5)
-        obs_concomitant = maybe_missing(concomitant_drugs if concomitant_drugs else None, 0.5)
-        obs_history = maybe_missing(medical_history if medical_history else None, 0.5)
-        obs_onset = maybe_missing(onset_days, 0.4)
-        obs_reporter = maybe_missing(reporter_type, 0.3)
-        obs_dechallenge = maybe_missing(dechallenge_positive, 0.6)
-        obs_rechallenge = maybe_missing(rechallenge_positive, 0.7)
-        obs_labs = maybe_missing(labs, 0.5)
+        obs_age = maybe_missing(patient_age, 0.4, rng=rng)
+        obs_weight = maybe_missing(patient_weight, 0.5, rng=rng)
+        obs_concomitant = maybe_missing(concomitant_drugs if concomitant_drugs else None, 0.5, rng=rng)
+        obs_history = maybe_missing(medical_history if medical_history else None, 0.5, rng=rng)
+        obs_onset = maybe_missing(onset_days, 0.4, rng=rng)
+        obs_reporter = maybe_missing(reporter_type, 0.3, rng=rng)
+        obs_dechallenge = maybe_missing(dechallenge_positive, 0.6, rng=rng)
+        obs_rechallenge = maybe_missing(rechallenge_positive, 0.7, rng=rng)
+        obs_labs = maybe_missing(labs, 0.5, rng=rng)
 
     # ---- free text (with artifacts) ----
     base_text = f"Patient ({patient_age}y, {patient_weight}kg) reports {', '.join(symptoms)} after taking {drug_name}."
@@ -445,24 +457,24 @@ def generate_case(task="hard", seed=None):
         if true_life_threatening:
             free_text += " Event classified as life-threatening."
     elif task == "medium":
-        free_text = base_text + " " + random.choice(NOISE_PHRASES)
-        if random.random() < 0.3:
-            free_text = _apply_abbreviations(free_text)
+        free_text = base_text + " " + rng.choice(NOISE_PHRASES)
+        if rng.random() < 0.3:
+            free_text = _apply_abbreviations(free_text, rng=rng)
     else:
         # hard: maximum noise
         free_text = base_text
-        free_text += " " + random.choice(NOISE_PHRASES)
-        if random.random() < 0.5:
-            free_text += " " + random.choice(MISLEADING_PHRASES)
-        if random.random() < 0.4:
-            free_text += " " + random.choice(CONTRADICTORY_PHRASES)
+        free_text += " " + rng.choice(NOISE_PHRASES)
+        if rng.random() < 0.5:
+            free_text += " " + rng.choice(MISLEADING_PHRASES)
+        if rng.random() < 0.4:
+            free_text += " " + rng.choice(CONTRADICTORY_PHRASES)
         # apply artifacts
-        if random.random() < 0.3:
-            free_text = _apply_typos(free_text, prob=0.12)
-        if random.random() < 0.2:
-            free_text = _apply_ocr_errors(free_text, prob=0.06)
-        if random.random() < 0.3:
-            free_text = _apply_abbreviations(free_text, prob=0.25)
+        if rng.random() < 0.3:
+            free_text = _apply_typos(free_text, prob=0.12, rng=rng)
+        if rng.random() < 0.2:
+            free_text = _apply_ocr_errors(free_text, prob=0.06, rng=rng)
+        if rng.random() < 0.3:
+            free_text = _apply_abbreviations(free_text, prob=0.25, rng=rng)
 
     # ---- ground truth ----
     serious = true_hospitalized or true_life_threatening
@@ -473,7 +485,7 @@ def generate_case(task="hard", seed=None):
         expected = any(s in (drug_info["common_se"] + drug_info["rare_se"]) for s in symptoms)
 
     # hard: deceptive expectedness flip
-    if task == "hard" and random.random() < 0.35:
+    if task == "hard" and rng.random() < 0.35:
         expected = not expected
 
     # severity from clinical evidence
@@ -493,11 +505,11 @@ def generate_case(task="hard", seed=None):
         escalation = "routine_review"
 
     # hard: escalation traps
-    if task == "hard" and random.random() < 0.25:
+    if task == "hard" and rng.random() < 0.25:
         # flip escalation to create trap
         choices = ["routine_review", "urgent_review", "regulatory_report"]
         choices.remove(escalation)
-        escalation = random.choice(choices)
+        escalation = rng.choice(choices)
 
     # ---- determine available queries ----
     available = list(QUERY_CATALOG)
@@ -516,9 +528,9 @@ def generate_case(task="hard", seed=None):
     case_type = "standard"
     if interaction:
         case_type = "drug_interaction"
-    elif task == "hard" and random.random() < 0.2:
+    elif task == "hard" and rng.random() < 0.2:
         case_type = "ambiguous"
-    elif task == "hard" and random.random() < 0.15:
+    elif task == "hard" and rng.random() < 0.15:
         case_type = "impossible"
 
     # complexity score (for reward scaling)
