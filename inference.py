@@ -63,7 +63,7 @@ BENCHMARK = "pharma-triage-env"
 # ============================================================
 MAX_STEPS = 5
 TEMPERATURE = 0
-MAX_TOKENS = 300
+MAX_TOKENS = 256
 SUCCESS_SCORE_THRESHOLD = 0.5
 NUM_EPISODES = 30
 
