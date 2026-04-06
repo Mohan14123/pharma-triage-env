@@ -4,3 +4,25 @@ __pycache__/
 .env
 .DS_Store
 *.log
+*.egg-info/
+dist/
+build/
+uv.lock
+
+# Tracking / internal files
+progress.json
+completed.md
+last_output.txt
+need_to_improve.txt
+
+# Agent / workflow folders
+.agents/
+.agent/
+_agents/
+_agent/
+
+# Task spec files (not for submission)
+src/pharma_triage_env/TASKS MUST DO/
+
+# Sample / reference scripts
+scripts/sample_script.py

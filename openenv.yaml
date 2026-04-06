@@ -1,7 +1,37 @@
 name: pharma-triage-env
-description: Pharmacovigilance triage simulation
-entry_point: env:PharmaTriageEnv
+description: >
+  Multi-step pharmacovigilance triage environment for evaluating AI agents
+  on adverse drug event (ADE) report analysis, severity classification,
+  seriousness detection, expectedness reasoning, and escalation decisions.
+  Inspired by FDA FAERS workflows.
 
-observation_space: Observation
-action_space: Action
-reward_space: Reward
+entry_point: pharma_triage_env.env:PharmaTriageEnv
+version: "1.0.0"
+
+observation_space: pharma_triage_env.models:Observation
+action_space: pharma_triage_env.models:Action
+reward_space: pharma_triage_env.models:Reward
+
+tasks:
+  - name: easy
+    description: Complete, clean data with aligned signals
+    difficulty: low
+    max_steps: 3
+  - name: medium
+    description: Partial observability, noisy inputs, some ambiguity
+    difficulty: moderate
+    max_steps: 5
+  - name: hard
+    description: Adversarial cases, conflicting signals, drug interactions, deceptive labels
+    difficulty: high
+    max_steps: 5
+
+evaluation:
+  metric: score
+  range: [0.0, 1.0]
+  deterministic: true
+
+deployment:
+  server: server/app.py
+  inference: inference.py
+  port: 7860
