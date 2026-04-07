@@ -58,7 +58,7 @@ Missing critical cases leads to:
 
 ## Core Features
 
-### Multi-Step Interaction (Key Differentiator)
+### Multi-Step Interaction 
 
 Unlike single-step classification, PharmaTriageEnv supports a **query/reveal loop**:
 
@@ -106,9 +106,9 @@ Available queries (10 total):
 
 | Task | Expected Score | Reward Range |
 |------|---------------|--------------|
-| Easy | 0.85 – 1.0 | +3 to +10 |
-| Medium | 0.60 – 0.85 | +1 to +7 |
-| Hard | 0.40 – 0.70 | -3 to +5 |
+| Easy | 0.98 – 1.0 | +4 to +6 |
+| Medium | 0.90 – 0.97 | +5 to +10 |
+| Hard | 0.55 – 0.75 | -4 to +10 |
 
 ---
 
@@ -260,24 +260,118 @@ PYTHONPATH=./src python inference.py
 PYTHONPATH=./src python server/app.py
 ```
 
-### Example Demo Output
+### Demo Output — Full Explanation
+
+Run `PYTHONPATH=./src python scripts/demo.py` to see output like this:
 
 ```
 ==================================================
   TASK: EASY
 ==================================================
-  ✓ Ep 01 | Score: 1.000 | Reward: +7.50 | Steps: 1 | Queries: 0 | Type: standard
-  ✓ Ep 02 | Score: 0.889 | Reward: +5.30 | Steps: 2 | Queries: 1 | Type: standard
+  ✓ Ep 01 | Score: 0.900 | Reward:  +4.00 | Steps: 1 | Queries: 0 | Type: standard
+  ✓ Ep 02 | Score: 1.000 | Reward:  +5.00 | Steps: 1 | Queries: 0 | Type: standard
   ...
-  --- SUMMARY (EASY) ---
-  Average Score  : 0.9200
-  Average Reward : +6.100
+  ✗ Ep 01 | Score: 0.076 | Reward:  -3.30 | Steps: 5 | Queries: 4 | Type: impossible
+  △ Ep 10 | Score: 0.441 | Reward:  +4.06 | Steps: 1 | Queries: 0 | Type: ambiguous
 
-  TASK: HARD
-  △ Ep 01 | Score: 0.552 | Reward: +1.20 | Steps: 3 | Queries: 2 | Type: drug_interaction
-  ✗ Ep 02 | Score: 0.310 | Reward: -2.50 | Steps: 2 | Queries: 1 | Type: ambiguous
-  ...
+  --- SUMMARY (HARD) ---
+  Average Score  : 0.5817
+  Average Reward : +4.357
+  Avg Queries    : 1.2
+  Avg Steps      : 2.3
+  Min/Max Score  : 0.076 / 1.000
 ```
+
+---
+
+#### Episode Line Format
+
+```
+  <status> Ep <##> | Score: <X.XXX> | Reward: <±XX.XX> | Steps: <N> | Queries: <N> | Type: <type>
+```
+
+| Field | Meaning |
+|---|---|
+| **Status icon** | `✓` = score ≥ 0.8 (pass), `△` = 0.4–0.79 (partial), `✗` = < 0.4 (fail) |
+| **Ep ##** | Episode number within the current task (1-indexed) |
+| **Score** | Final deterministic grade from `grader.py`, normalized to `[0.0, 1.0]` |
+| **Reward** | Shaped learning signal from `reward.py`, range `[-10, +10]` |
+| **Steps** | Total environment steps taken (queries + final decision action) |
+| **Queries** | Number of information-reveal queries issued before the decision |
+| **Type** | The case category (see below) |
+
+---
+
+#### Case Types
+
+| Type | What it means | Can score 1.0? |
+|---|---|---|
+| `standard` | Normal ADE case with complete or partially-observable data | Yes |
+| `drug_interaction` | Patient is on multiple drugs with a known emergent interaction | Yes (requires detecting interaction) |
+| `ambiguous` | `expected` field is deliberately flipped; drug label signal conflicts with symptoms | Rarely — ambiguity lowers ceiling |
+| `impossible` | Ground truth is structurally contradicted: `serious` flipped, observable flags inverted, escalation trapped | No — 1.0 is mathematically unreachable |
+
+> **Why can't `impossible` cases score 1.0?**  
+> The environment injects three simultaneous contradictions into the case: the `hospitalized`/`life_threatening` flags shown to the agent are the **opposite** of the ground truth `serious` label, the `escalation` target is always flipped to a wrong value, and the `serious` ground truth itself is inverted. No consistent answer to all five grading dimensions exists.
+
+---
+
+#### Score Math
+
+The score is a weighted sum across five grading dimensions, normalized by a per-task maximum:
+
+| Dimension | EASY weight | MEDIUM weight | HARD weight |
+|---|---|---|---|
+| Severity (exact or ±1 partial) | 1.5 | 2.0 | 2.0 |
+| Seriousness (exact match) | 2.5 | 3.0 | 3.5 |
+| Expectedness (exact match) | 1.0 | 1.5 | 2.0 |
+| Escalation (exact or ±1 partial) | 2.0 | 2.5 | 3.0 |
+| Safety compound check | 2.0 | 3.0 | 4.0 |
+| **Max possible raw score** | **9.0** | **12.0** | **14.5** |
+
+**Safety compound check rules:**
+- If case is **critical** (`serious=True` AND `expected=False`): agent must correctly get all three (`serious`, `expected`, `escalation=regulatory_report`) — scored proportionally (0→3 checks passed)
+- If case is **non-critical**: agent earns full compound weight for correctly **not** over-escalating to `regulatory_report`; zero if it falsely escalates
+
+Common score values and their cause:
+
+| Score | Typical cause |
+|---|---|
+| `1.000` | All 5 dimensions correct |
+| `0.900` | Severity off by one step (partial credit = `1.5 × 0.4 = 0.6` instead of `1.5`) |
+| `0.855` | Escalation off by one step (partial credit = `escalation_weight × 0.3`) |
+| `0.678` | Ambiguous case — `expected` signal deliberately flipped, one dimension unavoidably wrong |
+| `0.441 / 0.533` | Multiple dimensions wrong (typical hard case miss) |
+| `0.276` | Impossible case — 2 of 5 dimensions are structurally unresolvable |
+| `0.076` | Impossible case — 3+ dimensions contradicted, penalties applied |
+| `0.000` | Catastrophic failure — missed serious case + wrong escalation + penalties exceed score |
+
+---
+
+#### Summary Block
+
+```
+  --- SUMMARY (HARD) ---
+  Average Score  : 0.5817    ← mean grade across all 25 episodes
+  Average Reward : +4.357    ← mean shaped reward
+  Avg Queries    : 1.2       ← how many info-lookups per episode on average
+  Avg Steps      : 2.3       ← total env steps per episode (queries + decision)
+  Min/Max Score  : 0.076 / 1.000   ← best and worst episode score
+```
+
+---
+
+#### Reproducibility
+
+All episodes use a fixed, deterministic seed chain:
+
+```python
+SEED_BASE = 42  # in demo.py
+# Episode N gets seed: 42 + N
+# Same seed → identical case every run
+```
+
+To benchmark against a different case set, change `SEED_BASE`. All reproducibility guarantees hold for any integer seed.
 
 ---
 

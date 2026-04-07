@@ -121,10 +121,11 @@ class TriageGrader:
             ratio = compound_score / checks
             score += w["safety_compound"] * ratio
         else:
-            # Non-critical case: partial safety credit for not over-escalating
+            # Non-critical case: full safety credit for correctly NOT over-escalating.
+            # A perfectly handled routine case deserves a perfect score.
             if pred.get("escalation") != "regulatory_report":
-                score += w["safety_compound"] * 0.5
-            # No bonus if agent falsely escalates a non-critical case
+                score += w["safety_compound"]   # full credit — correct clinical judgment
+            # Zero bonus if agent falsely escalates a non-critical case (penalty applied below)
 
         # ========================================
         # 6. PENALTIES

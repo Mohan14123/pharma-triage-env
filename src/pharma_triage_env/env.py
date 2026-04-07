@@ -40,7 +40,12 @@ class PharmaTriageEnv:
     def __init__(self, task="hard", max_steps=5, seed=None):
         self.task = task
         self.max_steps = max_steps
+<<<<<<< HEAD
         self.seed = seed
+=======
+        self.base_seed = seed
+        self.episode_count = 0
+>>>>>>> 8d9e789 (fix: impossible/ambiguous case types now structurally affect ground truth)
         self.grader = TriageGrader()
         self.reward_calc = RewardCalculator()
 
@@ -53,15 +58,20 @@ class PharmaTriageEnv:
         self.episode_history = []
         self._episode_index = 0
 
-    def reset(self):
+    def reset(self, seed=None):
         """
         Reset environment for a new episode.
+
+        Args:
+            seed: optional per-episode seed. If not provided and base_seed
+                  was set at init, auto-seeds as base_seed + episode_count.
 
         Returns:
             Observation: initial (possibly partial) observation
         """
         from pharma_triage_env.generator import generate_case
 
+<<<<<<< HEAD
         # Deterministic seeding: episode i gets seed = base_seed + i
         episode_seed = None
         if self.seed is not None:
@@ -69,6 +79,15 @@ class PharmaTriageEnv:
             self._episode_index += 1
 
         self.current_case = generate_case(self.task, seed=episode_seed)
+=======
+        # deterministic seeding
+        ep_seed = seed
+        if ep_seed is None and self.base_seed is not None:
+            ep_seed = self.base_seed + self.episode_count
+        self.episode_count += 1
+
+        self.current_case = generate_case(self.task, seed=ep_seed)
+>>>>>>> 8d9e789 (fix: impossible/ambiguous case types now structurally affect ground truth)
         self.step_count = 0
         self.queries_used = 0
         self.revealed_fields = {}

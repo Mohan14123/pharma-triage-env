@@ -339,7 +339,22 @@ def generate_case(task="hard", seed=None):
 
     if task == "easy":
         # pick from common side effects
+<<<<<<< HEAD
         symptoms = rng.sample(drug_info["common_se"], min(num_symptoms, len(drug_info["common_se"])))
+=======
+        symptoms = random.sample(drug_info["common_se"], min(num_symptoms, len(drug_info["common_se"])))
+        # ~20% chance: inject a rare/outlier symptom not in the known label
+        # This creates genuinely critical EASY cases and breaks the 0.889 ceiling
+        if random.random() < 0.20:
+            rare_candidates = [s for s in drug_info["rare_se"] if s not in drug_info["common_se"]]
+            if not rare_candidates:
+                # fallback: borrow a rare symptom from a different drug
+                other_drug = random.choice([d for d in DRUGS if d != drug_name])
+                rare_candidates = DRUGS[other_drug]["rare_se"]
+            if rare_candidates:
+                symptoms.append(random.choice(rare_candidates))
+                symptoms = list(set(symptoms))
+>>>>>>> 8d9e789 (fix: impossible/ambiguous case types now structurally affect ground truth)
     elif task == "medium":
         pool = drug_info["common_se"] + drug_info["rare_se"]
         symptoms = rng.sample(pool, min(num_symptoms, len(pool)))
@@ -476,6 +491,16 @@ def generate_case(task="hard", seed=None):
         if rng.random() < 0.3:
             free_text = _apply_abbreviations(free_text, prob=0.25, rng=rng)
 
+    # ---- determine case_type EARLY so it can affect ground truth ----
+    # (must happen before ground truth is locked)
+    case_type = "standard"
+    if interaction:
+        case_type = "drug_interaction"
+    elif task == "hard" and random.random() < 0.2:
+        case_type = "ambiguous"
+    elif task == "hard" and random.random() < 0.15:
+        case_type = "impossible"
+
     # ---- ground truth ----
     serious = true_hospitalized or true_life_threatening
 
@@ -484,8 +509,13 @@ def generate_case(task="hard", seed=None):
     else:
         expected = any(s in (drug_info["common_se"] + drug_info["rare_se"]) for s in symptoms)
 
+<<<<<<< HEAD
     # hard: deceptive expectedness flip
     if task == "hard" and rng.random() < 0.35:
+=======
+    # hard: deceptive expectedness flip (standard hard cases only)
+    if task == "hard" and case_type == "standard" and random.random() < 0.35:
+>>>>>>> 8d9e789 (fix: impossible/ambiguous case types now structurally affect ground truth)
         expected = not expected
 
     # severity from clinical evidence
@@ -496,7 +526,7 @@ def generate_case(task="hard", seed=None):
     else:
         severity = "low"
 
-    # escalation
+    # escalation (derived logically first)
     if serious and not expected:
         escalation = "regulatory_report"
     elif serious:
@@ -504,12 +534,47 @@ def generate_case(task="hard", seed=None):
     else:
         escalation = "routine_review"
 
+<<<<<<< HEAD
     # hard: escalation traps
     if task == "hard" and rng.random() < 0.25:
         # flip escalation to create trap
         choices = ["routine_review", "urgent_review", "regulatory_report"]
         choices.remove(escalation)
         escalation = rng.choice(choices)
+=======
+    # ---- case_type mutations (applied AFTER logical derivation) ----
+
+    if case_type == "impossible":
+        # Impossible: structured contradictions that make 1.0 mathematically unreachable.
+        # Evidence in the report will contradict the ground truth — no agent can fully resolve it.
+        # 1. Always trap the escalation (flip to a wrong-but-plausible value)
+        esc_choices = ["routine_review", "urgent_review", "regulatory_report"]
+        esc_choices.remove(escalation)
+        escalation = random.choice(esc_choices)
+        # 2. Flip serious — observable flags (hospitalized/life_threatening) will say the opposite
+        serious = not serious
+        # 3. Inject contradictory observable flags to match the flipped serious
+        #    (agent sees hospitalized=True but ground truth says serious=False, etc.)
+        hospitalized = not true_hospitalized
+        life_threatening = not true_life_threatening
+
+    elif case_type == "ambiguous":
+        # Ambiguous: always flip expected — the label vs. symptoms signal is reversed.
+        # Agent must decide with genuinely conflicting evidence.
+        expected = not expected
+        # Also trap escalation 50% of the time (ambiguous, not always wrong)
+        if random.random() < 0.5:
+            esc_choices = ["routine_review", "urgent_review", "regulatory_report"]
+            esc_choices.remove(escalation)
+            escalation = random.choice(esc_choices)
+
+    elif task == "hard" and case_type == "standard":
+        # Standard hard: probabilistic escalation trap (unchanged from before)
+        if random.random() < 0.25:
+            esc_choices = ["routine_review", "urgent_review", "regulatory_report"]
+            esc_choices.remove(escalation)
+            escalation = random.choice(esc_choices)
+>>>>>>> 8d9e789 (fix: impossible/ambiguous case types now structurally affect ground truth)
 
     # ---- determine available queries ----
     available = list(QUERY_CATALOG)
@@ -524,6 +589,7 @@ def generate_case(task="hard", seed=None):
     if life_threatening is not None:
         available = [q for q in available if q != "was_event_life_threatening"]
 
+<<<<<<< HEAD
     # ---- case metadata ----
     case_type = "standard"
     if interaction:
@@ -532,6 +598,9 @@ def generate_case(task="hard", seed=None):
         case_type = "ambiguous"
     elif task == "hard" and rng.random() < 0.15:
         case_type = "impossible"
+=======
+    # ---- case metadata ---- (case_type already set above)
+>>>>>>> 8d9e789 (fix: impossible/ambiguous case types now structurally affect ground truth)
 
     # complexity score (for reward scaling)
     complexity = 1.0
