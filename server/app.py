@@ -136,8 +136,9 @@ class StepRequest(BaseModel):
 
 
 @app.post("/reset")
-def reset(req: ResetRequest):
+def reset(req: Optional[ResetRequest] = None):
     """Reset environment for a new episode (HTTP — dev only)."""
+    req = req or ResetRequest()
     if req.task not in TASKS:
         raise HTTPException(status_code=400, detail=f"Invalid task: {req.task}. Choose from {list(TASKS.keys())}")
 
@@ -154,8 +155,9 @@ def reset(req: ResetRequest):
 
 
 @app.post("/step")
-def step(req: StepRequest):
+def step(req: Optional[StepRequest] = None):
     """Submit an action (HTTP — dev only)."""
+    req = req or StepRequest()
     env = sessions.get(req.session_id)
     if env is None:
         raise HTTPException(status_code=404, detail=f"Session '{req.session_id}' not found. Call /reset first.")
