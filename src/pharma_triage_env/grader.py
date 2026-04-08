@@ -144,10 +144,10 @@ class TriageGrader:
             score -= w["escalation"] * 0.4
 
         # ========================================
-        # 7. NORMALIZE to [0.0, 1.0]
+        # 7. NORMALIZE to (0.0, 1.0) exclusive
         # ========================================
         normalized = score / w["max"]
-        normalized = max(0.0, min(1.0, normalized))
+        normalized = max(0.0001, min(0.9999, normalized))
         normalized = round(normalized, 4)
 
         return normalized
