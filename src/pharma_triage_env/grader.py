@@ -147,7 +147,7 @@ class TriageGrader:
         # 7. NORMALIZE to (0.0, 1.0) exclusive
         # ========================================
         normalized = score / w["max"]
-        normalized = max(0.0001, min(0.9999, normalized))
-        normalized = round(normalized, 4)
+        normalized = max(0.001, min(0.999, normalized))
+        normalized = round(normalized, 3)
 
         return normalized
