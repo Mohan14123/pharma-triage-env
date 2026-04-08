@@ -54,6 +54,10 @@ from pharma_triage_env.models import Action
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 HF_TOKEN = os.getenv("HF_TOKEN")
+
+# Optional - if you use from_docker_image():
+LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
+
 if not HF_TOKEN:
     raise RuntimeError("HF_TOKEN environment variable is required but not set.")
 BENCHMARK = "pharma-triage-env"

@@ -492,9 +492,9 @@ def generate_case(task="hard", seed=None):
     case_type = "standard"
     if interaction:
         case_type = "drug_interaction"
-    elif task == "hard" and random.random() < 0.2:
+    elif task == "hard" and rng.random() < 0.2:
         case_type = "ambiguous"
-    elif task == "hard" and random.random() < 0.15:
+    elif task == "hard" and rng.random() < 0.15:
         case_type = "impossible"
 
     # ---- ground truth ----

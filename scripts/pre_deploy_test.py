@@ -179,6 +179,7 @@ test("Wrong prediction reward < perfect", r_wrong < r_perfect)
 print("\n🔬 6. OUTPUT FORMAT COMPLIANCE")
 # ============================================================
 # Simulate what inference.py outputs
+os.environ["HF_TOKEN"] = os.getenv("HF_TOKEN", "dummy")
 from inference import log_start, log_step, log_end
 
 buf = io.StringIO()
